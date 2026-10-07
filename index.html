@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meri Dukaan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#14213d;--mute:#5d6b82;--acc:#f2a900;--ok:#1b7f5c;--line:#dde3ec}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1626;--card:#18233a;--ink:#eef2f9;--mute:#9aa8c0;--line:#2a3750}}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Bricolage Grotesque',system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+header{position:sticky;top:0;z-index:5;display:flex;gap:12px;align-items:center;padding:12px 16px;background:var(--ink);color:#fff}
+header h1{font-size:20px;margin:0;font-weight:800;flex:1}
+button{font:inherit;cursor:pointer;border:0;border-radius:8px;padding:10px 14px;font-weight:600}
+.cartbtn{background:var(--acc);color:#14213d}
+.hero{padding:36px 16px 20px;max-width:1000px;margin:auto}
+.hero h2{font-size:clamp(28px,6vw,48px);margin:0 0 8px;font-weight:800;line-height:1.1}
+.hero p{color:var(--mute);margin:0}
+.tools{display:flex;gap:8px;flex-wrap:wrap;max-width:1000px;margin:16px auto;padding:0 16px}
+input,select,textarea{font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);width:100%}
+.tools input{flex:2;min-width:160px}.tools select{flex:1;min-width:120px;width:auto}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px;max-width:1000px;margin:auto;padding:0 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.pic{aspect-ratio:1;display:grid;place-items:center;font-size:64px}
+.pic img{width:100%;height:100%;object-fit:cover}
+.info{padding:12px;display:flex;flex-direction:column;gap:6px;flex:1}
+.info h3{margin:0;font-size:16px}.cat{color:var(--mute);font-size:13px}
+.price{font-weight:800;font-size:18px}
+.add{margin-top:auto;background:var(--ink);color:#fff}
+@media(prefers-color-scheme:dark){.add{background:var(--acc);color:#14213d}}
+.empty{grid-column:1/-1;text-align:center;color:var(--mute);padding:40px}
+#shade{position:fixed;inset:0;background:#0007;display:none;z-index:9}
+#drawer{position:fixed;top:0;right:0;height:100%;width:min(420px,100%);background:var(--card);z-index:10;transform:translateX(100%);transition:transform .25s;display:flex;flex-direction:column}
+body.open #drawer{transform:none}body.open #shade{display:block}
+@media(prefers-reduced-motion:reduce){#drawer{transition:none}}
+.dh{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line)}
+.dh h2{margin:0;font-size:20px}.x{background:none;color:var(--ink);font-size:22px}
+#items{flex:1;overflow:auto;padding:8px 16px}
+.row{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row .n{flex:1}.row small{color:var(--mute)}
+.qty{display:flex;align-items:center;gap:6px}
+.qty button{padding:4px 10px;background:var(--line);color:var(--ink)}
+.foot{padding:14px 16px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.total{display:flex;justify-content:space-between;font-weight:800;font-size:18px}
+.wa{background:var(--ok);color:#fff}.pay{background:var(--acc);color:#14213d}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+#toast.show{opacity:1}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="shopname"></h1>
+  <button class="cartbtn" id="openCart">Cart (<span id="count">0</span>)</button>
+</header>
+
+<section class="hero">
+  <h2>Seedha kaarigar se, aapke ghar tak</h2>
+  <p>Chuno, cart me daalo, aur WhatsApp ya online payment se order karo.</p>
+</section>
+
+<div class="tools">
+  <input id="q" type="search" placeholder="Product khojo..." aria-label="Search">
+  <select id="cat" aria-label="Category"></select>
+  <select id="sort" aria-label="Sort">
+    <option value="">Sort</option><option value="lh">Price: kam se zyada</option><option value="hl">Price: zyada se kam</option>
+  </select>
+</div>
+
+<main class="grid" id="grid"></main>
+
+<div id="shade"></div>
+<aside id="drawer" aria-label="Cart">
+  <div class="dh"><h2>Aapka cart</h2><button class="x" id="closeCart" aria-label="Close">×</button></div>
+  <div id="items"></div>
+  <div class="foot" id="foot">
+    <div class="total"><span>Total</span><span id="total">₹0</span></div>
+    <input id="name" placeholder="Aapka naam" autocomplete="name">
+    <input id="phone" placeholder="Phone number" inputmode="tel" autocomplete="tel">
+    <textarea id="addr" rows="2" placeholder="Poora pata"></textarea>
+    <button class="wa" id="waBtn">WhatsApp par order karo</button>
+    <button class="pay" id="payBtn">Online payment karo</button>
+  </div>
+</aside>
+<div id="toast" role="status"></div>
+
+<script>
+/* ====== SETTINGS: yahan apni details badlo ====== */
+const SHOP_NAME = "Meri Dukaan";
+const WHATSAPP = "919302265487";            // country code ke saath, bina + ke
+const PAYMENT_LINK = "";                    // Razorpay/Stripe payment link, ya khali chhodo
+const CURRENCY = "₹";
+/* Products: img me image ka URL ya repo ka path (jaise "images/diya.jpg") daal sakte ho.
+   img na ho to emoji dikhega. */
+const PRODUCTS = [
+  {id:1,name:"Haath ka bana diya",cat:"Ghar",price:299,img:"images/diya.jpg"},
+  {id:2,name:"Cotton tote bag",cat:"Fashion",price:449,img:"images/tote.jpg"},
+  {id:3,name:"Masala chai mix",cat:"Khana",price:199,img:"images/chai.jpg"},
+  {id:4,name:"Mitti ka kulhad (6)",cat:"Ghar",price:240,img:"images/kulhad.jpg"},
+  {id:5,name:"Desi ghee 500g",cat:"Khana",price:520,img:"images/ghee.jpg"},
+  {id:6,name:"Silver jhumke",cat:"Fashion",price:799,emoji:"💎",bg:"#d5e1f5"},
+  {id:7,name:"Accountancy book (Class XI)",cat:"Stationery",price:149,img:"images/book.jpg"},
+  {id:8,name:"Fountain pen",cat:"Stationery",price:99,img:"images/pen.jpg"}
+];
+/* ================================================= */
+
+const $ = id => document.getElementById(id);
+const money = n => CURRENCY + n.toLocaleString("en-IN");
+let cart = {};
+try { cart = JSON.parse(localStorage.getItem("cart") || "{}"); } catch(e) {}
+
+document.title = SHOP_NAME; $("shopname").textContent = SHOP_NAME;
+const cats = ["Sab", ...new Set(PRODUCTS.map(p => p.cat))];
+$("cat").innerHTML = cats.map(c => `<option>${c}</option>`).join("");
+
+function render(){
+  const q = $("q").value.toLowerCase(), c = $("cat").value, s = $("sort").value;
+  let list = PRODUCTS.filter(p => (c==="Sab"||p.cat===c) && p.name.toLowerCase().includes(q));
+  if(s==="lh") list.sort((a,b)=>a.price-b.price);
+  if(s==="hl") list.sort((a,b)=>b.price-a.price);
+  $("grid").innerHTML = list.length ? list.map(p => `
+    <article class="card">
+      <div class="pic" style="background:${p.bg||'#eee'}">${p.img?`<img src="${p.img}" alt="${p.name}" loading="lazy">`:p.emoji}</div>
+      <div class="info"><span class="cat">${p.cat}</span><h3>${p.name}</h3>
+      <span class="price">${money(p.price)}</span>
+      <button class="add" data-id="${p.id}">Cart me daalo</button></div>
+    </article>`).join("") : `<div class="empty">Koi product nahi mila. Doosra naam try karo.</div>`;
+}
+
+function save(){ try{localStorage.setItem("cart",JSON.stringify(cart));}catch(e){} drawCart(); }
+function lines(){ return Object.entries(cart).map(([id,q])=>({p:PRODUCTS.find(x=>x.id==id),q})).filter(l=>l.p); }
+function total(){ return lines().reduce((t,l)=>t+l.p.price*l.q,0); }
+
+function drawCart(){
+  const ls = lines();
+  $("count").textContent = ls.reduce((t,l)=>t+l.q,0);
+  $("total").textContent = money(total());
+  $("items").innerHTML = ls.length ? ls.map(({p,q})=>`
+    <div class="row"><div class="n">${p.name}<br><small>${money(p.price)} × ${q} = ${money(p.price*q)}</small></div>
+    <div class="qty"><button data-d="-1" data-id="${p.id}" aria-label="Kam karo">−</button><b>${q}</b>
+    <button data-d="1" data-id="${p.id}" aria-label="Badhao">+</button></div></div>`).join("")
+    : `<p class="empty">Cart khali hai. Kuch product chuno.</p>`;
+  $("foot").style.display = ls.length ? "flex" : "none";
+  $("payBtn").style.display = PAYMENT_LINK ? "block" : "none";
+}
+
+function toast(t){ const e=$("toast"); e.textContent=t; e.classList.add("show"); setTimeout(()=>e.classList.remove("show"),1800); }
+function openCart(v){ document.body.classList.toggle("open",v); }
+
+function details(){
+  const name=$("name").value.trim(), phone=$("phone").value.trim(), addr=$("addr").value.trim();
+  if(!name||!/^\d{10}$/.test(phone.replace(/\D/g,"").slice(-10))||!addr){ toast("Naam, 10 digit phone aur pata bharo"); return null; }
+  return {name,phone,addr};
+}
+function orderText(d){
+  return `Naya order - ${SHOP_NAME}\n\n` + lines().map(({p,q})=>`${p.name} × ${q} = ${money(p.price*q)}`).join("\n")
+    + `\n\nTotal: ${money(total())}\n\nNaam: ${d.name}\nPhone: ${d.phone}\nPata: ${d.addr}`;
+}
+
+$("grid").onclick = e => { const b=e.target.closest(".add"); if(!b) return;
+  cart[b.dataset.id]=(cart[b.dataset.id]||0)+1; save(); toast("Cart me add ho gaya"); };
+$("items").onclick = e => { const b=e.target.closest("[data-d]"); if(!b) return;
+  const id=b.dataset.id; cart[id]=(cart[id]||0)+ +b.dataset.d; if(cart[id]<=0) delete cart[id]; save(); };
+$("openCart").onclick=()=>openCart(true); $("closeCart").onclick=$("shade").onclick=()=>openCart(false);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") openCart(false); });
+["q","cat","sort"].forEach(i=>$(i).oninput=render);
+
+$("waBtn").onclick = () => { const d=details(); if(!d) return;
+  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(orderText(d))}`,"_blank"); };
+$("payBtn").onclick = () => { const d=details(); if(!d) return;
+  window.open(PAYMENT_LINK,"_blank"); toast("Payment ke baad WhatsApp par order bhejna mat bhoolna"); };
+
+render(); drawCart();
+</script>
+</body>
+</html>
